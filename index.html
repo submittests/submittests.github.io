@@ -108,6 +108,19 @@
             font-size: 14px;
         }
 
+        .repo-info {
+            background: #e3f2fd;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #1565c0;
+        }
+
+        .repo-info strong {
+            color: #0d47a1;
+        }
+
         button {
             width: 100%;
             padding: 14px;
@@ -183,17 +196,13 @@
 
         <div class="config-section">
             <h2>GitHub Configuration</h2>
+            <div id="repoInfo" class="repo-info"></div>
             <div class="form-group">
-                <label for="repoOwner">Repository Owner:</label>
-                <input type="text" id="repoOwner" placeholder="username">
-            </div>
-            <div class="form-group">
-                <label for="repoName">Repository Name:</label>
-                <input type="text" id="repoName" placeholder="my-repo">
-            </div>
-            <div class="form-group">
-                <label for="githubToken">GitHub Token (optional):</label>
-                <input type="text" id="githubToken" placeholder="ghp_...">
+                <label for="githubToken">GitHub Personal Access Token:</label>
+                <input type="password" id="githubToken" placeholder="ghp_...">
+                <small style="color: #666; display: block; margin-top: 5px;">
+                    Required to create issues. <a href="https://github.com/settings/tokens/new?description=Table%20Submit&scopes=public_repo" target="_blank" style="color: #667eea;">Create token</a>
+                </small>
             </div>
         </div>
 
@@ -203,14 +212,68 @@
     </div>
 
     <script>
+        // Detect repository from GitHub Pages URL
+        function detectRepository() {
+            const hostname = window.location.hostname;
+            const pathname = window.location.pathname;
+            
+            let owner, repo;
+            
+            // GitHub Pages URL patterns:
+            // 1. username.github.io/repo-name (project site)
+            // 2. username.github.io (user/org site - repo is username.github.io)
+            // 3. Custom domain (would need manual config)
+            
+            if (hostname.endsWith('.github.io')) {
+                // Extract owner (username or org name) from subdomain
+                owner = hostname.replace('.github.io', '');
+                
+                // Extract repo from first path segment
+                const pathParts = pathname.split('/').filter(part => part.length > 0);
+                
+                if (pathParts.length > 0) {
+                    // Project site: username.github.io/repo-name
+                    repo = pathParts[0];
+                } else {
+                    // User/org site: username.github.io
+                    // Repository name is username.github.io
+                    repo = hostname;
+                }
+            } else {
+                // Local testing or custom domain
+                owner = null;
+                repo = null;
+            }
+            
+            return { owner, repo };
+        }
+
+        // Display detected repository info
+        function displayRepoInfo() {
+            const { owner, repo } = detectRepository();
+            const repoInfoDiv = document.getElementById('repoInfo');
+            
+            if (owner && repo) {
+                repoInfoDiv.innerHTML = `<strong>Detected Repository:</strong> ${owner}/${repo}`;
+            } else {
+                repoInfoDiv.innerHTML = '<strong>⚠️ Could not detect repository.</strong> Make sure this page is hosted on GitHub Pages.';
+                repoInfoDiv.style.backgroundColor = '#fff3cd';
+                repoInfoDiv.style.color = '#856404';
+            }
+        }
+
         function submitToGitHub() {
-            const repoOwner = document.getElementById('repoOwner').value.trim();
-            const repoName = document.getElementById('repoName').value.trim();
+            const { owner, repo } = detectRepository();
             const token = document.getElementById('githubToken').value.trim();
             const statusDiv = document.getElementById('status');
 
-            if (!repoOwner || !repoName) {
-                showStatus('error', 'Please fill in repository owner and name');
+            if (!owner || !repo) {
+                showStatus('error', 'Could not detect repository. Please ensure this page is hosted on GitHub Pages.');
+                return;
+            }
+
+            if (!token) {
+                showStatus('error', 'Please provide a GitHub Personal Access Token');
                 return;
             }
 
@@ -225,7 +288,7 @@
             const issueBody = formatTableAsMarkdown(tableData);
             const issueTitle = `Table Update - ${new Date().toISOString().split('T')[0]}`;
 
-            createGitHubIssue(repoOwner, repoName, issueTitle, issueBody, token);
+            createGitHubIssue(owner, repo, issueTitle, issueBody, token);
         }
 
         function formatTableAsMarkdown(data) {
@@ -248,12 +311,9 @@
             
             const headers = {
                 'Accept': 'application/vnd.github.v3+json',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `token ${token}`
             };
-
-            if (token) {
-                headers['Authorization'] = `token ${token}`;
-            }
 
             const payload = {
                 title: title,
@@ -285,6 +345,9 @@
             statusDiv.innerHTML = message;
             statusDiv.style.display = 'block';
         }
+
+        // Display repository info on page load
+        window.addEventListener('DOMContentLoaded', displayRepoInfo);
     </script>
 </body>
 </html>
