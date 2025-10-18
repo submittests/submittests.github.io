@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editable Table</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        td {
+            border: 2px solid #e0e0e0;
+            padding: 0;
+            height: 60px;
+        }
+
+        input {
+            width: 100%;
+            height: 100%;
+            border: none;
+            padding: 12px;
+            font-size: 16px;
+            text-align: center;
+            transition: background-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            background-color: #f0f4ff;
+        }
+
+        .config-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .config-section h2 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .status {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Editable Table</h1>
+        <p class="subtitle">Edit the cells and submit to create a GitHub issue</p>
+        
+        <table id="dataTable">
+            <tr>
+                <td><input type="text" value="A1" data-cell="A1"></td>
+                <td><input type="text" value="B1" data-cell="B1"></td>
+                <td><input type="text" value="C1" data-cell="C1"></td>
+            </tr>
+            <tr>
+                <td><input type="text" value="A2" data-cell="A2"></td>
+                <td><input type="text" value="B2" data-cell="B2"></td>
+                <td><input type="text" value="C2" data-cell="C2"></td>
+            </tr>
+            <tr>
+                <td><input type="text" value="A3" data-cell="A3"></td>
+                <td><input type="text" value="B3" data-cell="B3"></td>
+                <td><input type="text" value="C3" data-cell="C3"></td>
+            </tr>
+        </table>
+
+        <div class="config-section">
+            <h2>GitHub Configuration</h2>
+            <div class="form-group">
+                <label for="repoOwner">Repository Owner:</label>
+                <input type="text" id="repoOwner" placeholder="username">
+            </div>
+            <div class="form-group">
+                <label for="repoName">Repository Name:</label>
+                <input type="text" id="repoName" placeholder="my-repo">
+            </div>
+            <div class="form-group">
+                <label for="githubToken">GitHub Token (optional):</label>
+                <input type="text" id="githubToken" placeholder="ghp_...">
+            </div>
+        </div>
+
+        <button onclick="submitToGitHub()">Submit to GitHub</button>
+        
+        <div id="status" class="status"></div>
+    </div>
+
+    <script>
+        function submitToGitHub() {
+            const repoOwner = document.getElementById('repoOwner').value.trim();
+            const repoName = document.getElementById('repoName').value.trim();
+            const token = document.getElementById('githubToken').value.trim();
+            const statusDiv = document.getElementById('status');
+
+            if (!repoOwner || !repoName) {
+                showStatus('error', 'Please fill in repository owner and name');
+                return;
+            }
+
+            const cells = document.querySelectorAll('#dataTable input');
+            let tableData = {};
+            
+            cells.forEach(cell => {
+                const cellId = cell.getAttribute('data-cell');
+                tableData[cellId] = cell.value;
+            });
+
+            const issueBody = formatTableAsMarkdown(tableData);
+            const issueTitle = `Table Update - ${new Date().toISOString().split('T')[0]}`;
+
+            createGitHubIssue(repoOwner, repoName, issueTitle, issueBody, token);
+        }
+
+        function formatTableAsMarkdown(data) {
+            let markdown = '## Table Data\n\n';
+            markdown += '| Column A | Column B | Column C |\n';
+            markdown += '|----------|----------|----------|\n';
+            markdown += `| ${data.A1} | ${data.B1} | ${data.C1} |\n`;
+            markdown += `| ${data.A2} | ${data.B2} | ${data.C2} |\n`;
+            markdown += `| ${data.A3} | ${data.B3} | ${data.C3} |\n`;
+            markdown += '\n---\n';
+            markdown += `*Submitted at: ${new Date().toLocaleString()}*`;
+            return markdown;
+        }
+
+        async function createGitHubIssue(owner, repo, title, body, token) {
+            const statusDiv = document.getElementById('status');
+            showStatus('info', 'Submitting to GitHub...');
+
+            const url = `https://api.github.com/repos/${owner}/${repo}/issues`;
+            
+            const headers = {
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json'
+            };
+
+            if (token) {
+                headers['Authorization'] = `token ${token}`;
+            }
+
+            const payload = {
+                title: title,
+                body: body
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showStatus('success', `Issue created successfully! <a href="${data.html_url}" target="_blank" style="color: #155724; font-weight: bold;">View Issue #${data.number}</a>`);
+                } else {
+                    const error = await response.json();
+                    showStatus('error', `Error: ${error.message || 'Failed to create issue'}`);
+                }
+            } catch (error) {
+                showStatus('error', `Network error: ${error.message}`);
+            }
+        }
+
+        function showStatus(type, message) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.innerHTML = message;
+            statusDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
