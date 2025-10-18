@@ -56,7 +56,7 @@
             height: 60px;
         }
 
-        input {
+        input[type="text"] {
             width: 100%;
             height: 100%;
             border: none;
@@ -66,59 +66,22 @@
             transition: background-color 0.2s;
         }
 
-        input:focus {
+        input[type="text"]:focus {
             outline: none;
             background-color: #f0f4ff;
         }
 
-        .config-section {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .config-section h2 {
-            font-size: 16px;
-            color: #333;
-            margin-bottom: 15px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group:last-child {
-            margin-bottom: 0;
-        }
-
-        label {
-            display: block;
-            font-size: 14px;
-            color: #555;
-            margin-bottom: 5px;
-            font-weight: 500;
-        }
-
-        .form-group input[type="text"],
-        .form-group input[type="password"] {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-
-        .repo-info {
+        .info-box {
             background: #e3f2fd;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
             font-size: 14px;
             color: #1565c0;
+            line-height: 1.6;
         }
 
-        .repo-info strong {
+        .info-box strong {
             color: #0d47a1;
         }
 
@@ -144,223 +107,80 @@
             transform: translateY(0);
         }
 
-        .status {
-            margin-top: 15px;
+        noscript {
+            display: block;
+            background: #fff3cd;
+            color: #856404;
             padding: 12px;
             border-radius: 6px;
+            margin-bottom: 20px;
             text-align: center;
             font-size: 14px;
-            display: none;
-        }
-
-        .status.success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .status.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .status.info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Editable Table</h1>
-        <p class="subtitle">Edit the cells and submit to create a pull request</p>
+        <p class="subtitle">Edit the cells and submit to create an issue</p>
         
-        <table id="dataTable">
-            <tr>
-                <td><input type="text" value="A1" data-cell="A1"></td>
-                <td><input type="text" value="B1" data-cell="B1"></td>
-                <td><input type="text" value="C1" data-cell="C1"></td>
-            </tr>
-            <tr>
-                <td><input type="text" value="A2" data-cell="A2"></td>
-                <td><input type="text" value="B2" data-cell="B2"></td>
-                <td><input type="text" value="C2" data-cell="C2"></td>
-            </tr>
-            <tr>
-                <td><input type="text" value="A3" data-cell="A3"></td>
-                <td><input type="text" value="B3" data-cell="B3"></td>
-                <td><input type="text" value="C3" data-cell="C3"></td>
-            </tr>
-        </table>
+        <noscript>
+            ✓ This form works without JavaScript!
+        </noscript>
 
-        <div class="config-section">
-            <h2>GitHub Configuration</h2>
-            <div id="repoInfo" class="repo-info"></div>
-            <div class="form-group">
-                <label for="githubToken">GitHub Personal Access Token:</label>
-                <input type="password" id="githubToken" placeholder="ghp_...">
-                <small style="color: #666; display: block; margin-top: 5px;">
-                    Required to create pull requests. <a href="https://github.com/settings/tokens/new?description=Table%20Submit&scopes=repo" target="_blank" style="color: #667eea;">Create token</a>
-                </small>
+        <form method="GET" action="https://github.com/submittests/submittests.github.io/issues/new">
+            <table>
+                <tr>
+                    <td><input type="text" name="A1" value="A1" required></td>
+                    <td><input type="text" name="B1" value="B1" required></td>
+                    <td><input type="text" name="C1" value="C1" required></td>
+                </tr>
+                <tr>
+                    <td><input type="text" name="A2" value="A2" required></td>
+                    <td><input type="text" name="B2" value="B2" required></td>
+                    <td><input type="text" name="C2" value="C2" required></td>
+                </tr>
+                <tr>
+                    <td><input type="text" name="A3" value="A3" required></td>
+                    <td><input type="text" name="B3" value="B3" required></td>
+                    <td><input type="text" name="C3" value="C3" required></td>
+                </tr>
+            </table>
+
+            <input type="hidden" name="title" value="Table Update">
+            <input type="hidden" name="body" id="issueBody" value="">
+
+            <div class="info-box">
+                <strong>How it works:</strong><br>
+                1. Edit the table cells above<br>
+                2. Click the button below<br>
+                3. You'll be taken to GitHub with a pre-filled issue<br>
+                4. Click "Submit new issue" to complete
             </div>
-        </div>
 
-        <button onclick="submitToGitHub()">Create Pull Request</button>
-        
-        <div id="status" class="status"></div>
+            <button type="submit">Create GitHub Issue</button>
+        </form>
     </div>
 
     <script>
-        // Detect repository from GitHub Pages URL
-        function detectRepository() {
-            const hostname = window.location.hostname;
-            const pathname = window.location.pathname;
+        // JavaScript enhancement (optional - form works without it)
+        // This formats the issue body nicely when JS is available
+        const form = document.querySelector('form');
+        
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
             
-            let owner, repo;
+            const formData = new FormData(form);
+            const data = {};
             
-            if (hostname.endsWith('.github.io')) {
-                owner = hostname.replace('.github.io', '');
-                
-                const pathParts = pathname.split('/').filter(part => part.length > 0);
-                
-                if (pathParts.length > 0) {
-                    repo = pathParts[0];
-                } else {
-                    repo = hostname;
+            // Collect all table data
+            for (let [key, value] of formData.entries()) {
+                if (key !== 'title' && key !== 'body') {
+                    data[key] = value;
                 }
-            } else {
-                owner = null;
-                repo = null;
             }
             
-            return { owner, repo };
-        }
-
-        function displayRepoInfo() {
-            const { owner, repo } = detectRepository();
-            const repoInfoDiv = document.getElementById('repoInfo');
-            
-            if (owner && repo) {
-                repoInfoDiv.innerHTML = `<strong>Detected Repository:</strong> ${owner}/${repo}`;
-            } else {
-                repoInfoDiv.innerHTML = '<strong>⚠️ Could not detect repository.</strong> Make sure this page is hosted on GitHub Pages.';
-                repoInfoDiv.style.backgroundColor = '#fff3cd';
-                repoInfoDiv.style.color = '#856404';
-            }
-        }
-
-        async function submitToGitHub() {
-            const { owner, repo } = detectRepository();
-            const token = document.getElementById('githubToken').value.trim();
-
-            if (!owner || !repo) {
-                showStatus('error', 'Could not detect repository. Please ensure this page is hosted on GitHub Pages.');
-                return;
-            }
-
-            if (!token) {
-                showStatus('error', 'Please provide a GitHub Personal Access Token');
-                return;
-            }
-
-            const cells = document.querySelectorAll('#dataTable input');
-            let tableData = {};
-            
-            cells.forEach(cell => {
-                const cellId = cell.getAttribute('data-cell');
-                tableData[cellId] = cell.value;
-            });
-
-            showStatus('info', 'Creating pull request...');
-
-            try {
-                await createPullRequest(owner, repo, token, tableData);
-            } catch (error) {
-                showStatus('error', `Error: ${error.message}`);
-            }
-        }
-
-        async function createPullRequest(owner, repo, token, tableData) {
-            const headers = {
-                'Authorization': `token ${token}`,
-                'Accept': 'application/vnd.github.v3+json',
-                'Content-Type': 'application/json'
-            };
-
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const branchName = `table-update-${timestamp}`;
-
-            // Step 1: Get the default branch
-            const repoResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers });
-            if (!repoResponse.ok) throw new Error('Failed to fetch repository info');
-            const repoData = await repoResponse.json();
-            const defaultBranch = repoData.default_branch;
-
-            // Step 2: Get the latest commit SHA of the default branch
-            const refResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${defaultBranch}`, { headers });
-            if (!refResponse.ok) throw new Error('Failed to fetch branch reference');
-            const refData = await refResponse.json();
-            const latestCommitSha = refData.object.sha;
-
-            // Step 3: Create a new branch
-            const createBranchResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs`, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({
-                    ref: `refs/heads/${branchName}`,
-                    sha: latestCommitSha
-                })
-            });
-            if (!createBranchResponse.ok) throw new Error('Failed to create branch');
-
-            // Step 4: Create file content
-            const fileContent = formatTableAsJSON(tableData);
-            const encodedContent = btoa(unescape(encodeURIComponent(fileContent)));
-            const fileName = `data/table-${timestamp}.json`;
-
-            // Step 5: Create the file in the new branch
-            const createFileResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${fileName}`, {
-                method: 'PUT',
-                headers,
-                body: JSON.stringify({
-                    message: `Add table data ${new Date().toLocaleString()}`,
-                    content: encodedContent,
-                    branch: branchName
-                })
-            });
-            if (!createFileResponse.ok) throw new Error('Failed to create file');
-
-            // Step 6: Create the pull request
-            const prResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls`, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({
-                    title: `Table Update - ${new Date().toISOString().split('T')[0]}`,
-                    head: branchName,
-                    base: defaultBranch,
-                    body: formatPRBody(tableData)
-                })
-            });
-
-            if (!prResponse.ok) {
-                const error = await prResponse.json();
-                throw new Error(error.message || 'Failed to create pull request');
-            }
-
-            const prData = await prResponse.json();
-            showStatus('success', `Pull request created successfully! <a href="${prData.html_url}" target="_blank" style="color: #155724; font-weight: bold;">View PR #${prData.number}</a>`);
-        }
-
-        function formatTableAsJSON(data) {
-            return JSON.stringify({
-                timestamp: new Date().toISOString(),
-                data: data
-            }, null, 2);
-        }
-
-        function formatPRBody(data) {
+            // Format as markdown table
             let body = '## Table Data\n\n';
             body += '| Column A | Column B | Column C |\n';
             body += '|----------|----------|----------|\n';
@@ -369,17 +189,15 @@
             body += `| ${data.A3} | ${data.B3} | ${data.C3} |\n`;
             body += '\n---\n';
             body += `*Submitted at: ${new Date().toLocaleString()}*`;
-            return body;
-        }
-
-        function showStatus(type, message) {
-            const statusDiv = document.getElementById('status');
-            statusDiv.className = `status ${type}`;
-            statusDiv.innerHTML = message;
-            statusDiv.style.display = 'block';
-        }
-
-        window.addEventListener('DOMContentLoaded', displayRepoInfo);
+            
+            // Create the GitHub issue URL with pre-filled content
+            const baseUrl = 'https://github.com/submittests/submittests.github.io/issues/new';
+            const title = `Table Update - ${new Date().toISOString().split('T')[0]}`;
+            const url = `${baseUrl}?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+            
+            // Open in same or new window
+            window.location.href = url;
+        });
     </script>
 </body>
 </html>
