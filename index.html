@@ -100,7 +100,8 @@
             font-weight: 500;
         }
 
-        .form-group input[type="text"] {
+        .form-group input[type="text"],
+        .form-group input[type="password"] {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
@@ -174,7 +175,7 @@
 <body>
     <div class="container">
         <h1>Editable Table</h1>
-        <p class="subtitle">Edit the cells and submit to create a GitHub issue</p>
+        <p class="subtitle">Edit the cells and submit to create a pull request</p>
         
         <table id="dataTable">
             <tr>
@@ -201,12 +202,12 @@
                 <label for="githubToken">GitHub Personal Access Token:</label>
                 <input type="password" id="githubToken" placeholder="ghp_...">
                 <small style="color: #666; display: block; margin-top: 5px;">
-                    Required to create issues. <a href="https://github.com/settings/tokens/new?description=Table%20Submit&scopes=public_repo" target="_blank" style="color: #667eea;">Create token</a>
+                    Required to create pull requests. <a href="https://github.com/settings/tokens/new?description=Table%20Submit&scopes=repo" target="_blank" style="color: #667eea;">Create token</a>
                 </small>
             </div>
         </div>
 
-        <button onclick="submitToGitHub()">Submit to GitHub</button>
+        <button onclick="submitToGitHub()">Create Pull Request</button>
         
         <div id="status" class="status"></div>
     </div>
@@ -219,28 +220,17 @@
             
             let owner, repo;
             
-            // GitHub Pages URL patterns:
-            // 1. username.github.io/repo-name (project site)
-            // 2. username.github.io (user/org site - repo is username.github.io)
-            // 3. Custom domain (would need manual config)
-            
             if (hostname.endsWith('.github.io')) {
-                // Extract owner (username or org name) from subdomain
                 owner = hostname.replace('.github.io', '');
                 
-                // Extract repo from first path segment
                 const pathParts = pathname.split('/').filter(part => part.length > 0);
                 
                 if (pathParts.length > 0) {
-                    // Project site: username.github.io/repo-name
                     repo = pathParts[0];
                 } else {
-                    // User/org site: username.github.io
-                    // Repository name is username.github.io
                     repo = hostname;
                 }
             } else {
-                // Local testing or custom domain
                 owner = null;
                 repo = null;
             }
@@ -248,7 +238,6 @@
             return { owner, repo };
         }
 
-        // Display detected repository info
         function displayRepoInfo() {
             const { owner, repo } = detectRepository();
             const repoInfoDiv = document.getElementById('repoInfo');
@@ -262,10 +251,9 @@
             }
         }
 
-        function submitToGitHub() {
+        async function submitToGitHub() {
             const { owner, repo } = detectRepository();
             const token = document.getElementById('githubToken').value.trim();
-            const statusDiv = document.getElementById('status');
 
             if (!owner || !repo) {
                 showStatus('error', 'Could not detect repository. Please ensure this page is hosted on GitHub Pages.');
@@ -285,58 +273,103 @@
                 tableData[cellId] = cell.value;
             });
 
-            const issueBody = formatTableAsMarkdown(tableData);
-            const issueTitle = `Table Update - ${new Date().toISOString().split('T')[0]}`;
-
-            createGitHubIssue(owner, repo, issueTitle, issueBody, token);
-        }
-
-        function formatTableAsMarkdown(data) {
-            let markdown = '## Table Data\n\n';
-            markdown += '| Column A | Column B | Column C |\n';
-            markdown += '|----------|----------|----------|\n';
-            markdown += `| ${data.A1} | ${data.B1} | ${data.C1} |\n`;
-            markdown += `| ${data.A2} | ${data.B2} | ${data.C2} |\n`;
-            markdown += `| ${data.A3} | ${data.B3} | ${data.C3} |\n`;
-            markdown += '\n---\n';
-            markdown += `*Submitted at: ${new Date().toLocaleString()}*`;
-            return markdown;
-        }
-
-        async function createGitHubIssue(owner, repo, title, body, token) {
-            const statusDiv = document.getElementById('status');
-            showStatus('info', 'Submitting to GitHub...');
-
-            const url = `https://api.github.com/repos/${owner}/${repo}/issues`;
-            
-            const headers = {
-                'Accept': 'application/vnd.github.v3+json',
-                'Content-Type': 'application/json',
-                'Authorization': `token ${token}`
-            };
-
-            const payload = {
-                title: title,
-                body: body
-            };
+            showStatus('info', 'Creating pull request...');
 
             try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: headers,
-                    body: JSON.stringify(payload)
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    showStatus('success', `Issue created successfully! <a href="${data.html_url}" target="_blank" style="color: #155724; font-weight: bold;">View Issue #${data.number}</a>`);
-                } else {
-                    const error = await response.json();
-                    showStatus('error', `Error: ${error.message || 'Failed to create issue'}`);
-                }
+                await createPullRequest(owner, repo, token, tableData);
             } catch (error) {
-                showStatus('error', `Network error: ${error.message}`);
+                showStatus('error', `Error: ${error.message}`);
             }
+        }
+
+        async function createPullRequest(owner, repo, token, tableData) {
+            const headers = {
+                'Authorization': `token ${token}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json'
+            };
+
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const branchName = `table-update-${timestamp}`;
+
+            // Step 1: Get the default branch
+            const repoResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers });
+            if (!repoResponse.ok) throw new Error('Failed to fetch repository info');
+            const repoData = await repoResponse.json();
+            const defaultBranch = repoData.default_branch;
+
+            // Step 2: Get the latest commit SHA of the default branch
+            const refResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${defaultBranch}`, { headers });
+            if (!refResponse.ok) throw new Error('Failed to fetch branch reference');
+            const refData = await refResponse.json();
+            const latestCommitSha = refData.object.sha;
+
+            // Step 3: Create a new branch
+            const createBranchResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                    ref: `refs/heads/${branchName}`,
+                    sha: latestCommitSha
+                })
+            });
+            if (!createBranchResponse.ok) throw new Error('Failed to create branch');
+
+            // Step 4: Create file content
+            const fileContent = formatTableAsJSON(tableData);
+            const encodedContent = btoa(unescape(encodeURIComponent(fileContent)));
+            const fileName = `data/table-${timestamp}.json`;
+
+            // Step 5: Create the file in the new branch
+            const createFileResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${fileName}`, {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify({
+                    message: `Add table data ${new Date().toLocaleString()}`,
+                    content: encodedContent,
+                    branch: branchName
+                })
+            });
+            if (!createFileResponse.ok) throw new Error('Failed to create file');
+
+            // Step 6: Create the pull request
+            const prResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                    title: `Table Update - ${new Date().toISOString().split('T')[0]}`,
+                    head: branchName,
+                    base: defaultBranch,
+                    body: formatPRBody(tableData)
+                })
+            });
+
+            if (!prResponse.ok) {
+                const error = await prResponse.json();
+                throw new Error(error.message || 'Failed to create pull request');
+            }
+
+            const prData = await prResponse.json();
+            showStatus('success', `Pull request created successfully! <a href="${prData.html_url}" target="_blank" style="color: #155724; font-weight: bold;">View PR #${prData.number}</a>`);
+        }
+
+        function formatTableAsJSON(data) {
+            return JSON.stringify({
+                timestamp: new Date().toISOString(),
+                data: data
+            }, null, 2);
+        }
+
+        function formatPRBody(data) {
+            let body = '## Table Data\n\n';
+            body += '| Column A | Column B | Column C |\n';
+            body += '|----------|----------|----------|\n';
+            body += `| ${data.A1} | ${data.B1} | ${data.C1} |\n`;
+            body += `| ${data.A2} | ${data.B2} | ${data.C2} |\n`;
+            body += `| ${data.A3} | ${data.B3} | ${data.C3} |\n`;
+            body += '\n---\n';
+            body += `*Submitted at: ${new Date().toLocaleString()}*`;
+            return body;
         }
 
         function showStatus(type, message) {
@@ -346,7 +379,6 @@
             statusDiv.style.display = 'block';
         }
 
-        // Display repository info on page load
         window.addEventListener('DOMContentLoaded', displayRepoInfo);
     </script>
 </body>
